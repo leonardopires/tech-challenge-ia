@@ -2,7 +2,7 @@ from typing import MutableMapping
 
 import requests
 from flask import Flask, jsonify, request, Response
-from flask_restful import Resource, Api
+from flask_restx import Resource, Api, fields, Namespace
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, exceptions
 import pandas as pd
 from io import StringIO
@@ -10,10 +10,14 @@ from io import StringIO
 from pandas.errors import ParserError
 
 app = Flask(__name__)
-api = Api(app)
+api = Api(app, version='1.0', title='API de dados de produção vitivinícola.',
+          description='Baixa e processa os dados direto do site da Embrapa.')
+ns = Namespace('api', description='API com as operações de extração dos dados do site da Embrapa.')
+api.add_namespace(ns)
 
 # Configure a chave secreta JWT
 app.config['JWT_SECRET_KEY'] = 'sua-chave-secreta-aqui'
+
 
 @app.errorhandler(exceptions.NoAuthorizationError)
 def unauthorized(error):
@@ -23,6 +27,7 @@ def unauthorized(error):
 @app.errorhandler(500)
 def on_error(error):
     return jsonify({"status_code": 500, "message": "Erro Interno", "error": error.__dict__}), 500
+
 
 # Inicialize o gerenciador JWT
 jwt = JWTManager(app)
@@ -59,7 +64,9 @@ class APIResponse:
 
 
 class CSVDownloaderResource(Resource):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
         self.sitemap: dict = {
             "processamento": {
                 "viniferas": {"resource": "ProcessaViniferas", "delimiter": "\t"},
@@ -111,6 +118,8 @@ class CSVDownloaderResource(Resource):
         df = pd.read_csv(csv_data, delimiter=delimiter)
         return df.to_dict(orient='records')
 
+    @ns.doc(params={'action': 'Tipo de ação (processamento, comercializacao, importacao, exportacao)',
+                    'type': 'O tipo de produto analisado (viniferas, americanasehibridas, etc.)'})
     def get(self, action: str, type: str = "index") -> tuple[dict, int]:
         result = APIResponse.empty()
 
@@ -136,12 +145,10 @@ class CSVDownloaderResource(Resource):
 
 
 # Adicionando recursos à API
-api.add_resource(
+ns.add_resource(
     CSVDownloaderResource,
-    '/api/<string:action>/<string:type>',
-    '/api/<string:action>/<string:type>/',
-    '/api/<string:action>',
-    '/api/<string:action>/')
+    '/<string:action>/<string:type>',
+    '/<string:action>')
 
 
 # Endpoint para login
@@ -159,6 +166,7 @@ def login():
 
 # Endpoint protegido
 @app.route('/protegido', methods=['GET'])
+@jwt_required()
 def protegido():
     current_user = get_jwt_identity()
     return jsonify(logado_como=current_user), 200
