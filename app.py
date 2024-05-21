@@ -108,6 +108,9 @@ class CSVDownloaderResource(Resource):
         if action not in self.sitemap:
             result = APIResponse.not_found()
 
+        if type not in self.sitemap[action]:
+            result = APIResponse.not_found()
+
         try:
             item = self.sitemap[action][type]
             resource = item['resource']
