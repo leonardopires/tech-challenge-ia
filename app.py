@@ -3,7 +3,7 @@ from typing import MutableMapping
 import requests
 from flask import Flask, jsonify, request, Response
 from flask_restful import Resource, Api
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, exceptions
 import pandas as pd
 from io import StringIO
 
@@ -14,6 +14,15 @@ api = Api(app)
 
 # Configure a chave secreta JWT
 app.config['JWT_SECRET_KEY'] = 'sua-chave-secreta-aqui'
+
+@app.errorhandler(exceptions.NoAuthorizationError)
+def unauthorized(error):
+    return jsonify({"status_code": 403, "message": "Acesso negado", "error": error.__dict__}), 403
+
+
+@app.errorhandler(500)
+def on_error(error):
+    return jsonify({"status_code": 500, "message": "Erro Interno", "error": error.__dict__}), 500
 
 # Inicialize o gerenciador JWT
 jwt = JWTManager(app)
@@ -129,10 +138,10 @@ class CSVDownloaderResource(Resource):
 # Adicionando recursos à API
 api.add_resource(
     CSVDownloaderResource,
-    '/<string:action>/<string:type>',
-    '/<string:action>/<string:type>/',
-    '/<string:action>',
-    '/<string:action>/')
+    '/api/<string:action>/<string:type>',
+    '/api/<string:action>/<string:type>/',
+    '/api/<string:action>',
+    '/api/<string:action>/')
 
 
 # Endpoint para login
@@ -150,7 +159,6 @@ def login():
 
 # Endpoint protegido
 @app.route('/protegido', methods=['GET'])
-@jwt_required()
 def protegido():
     current_user = get_jwt_identity()
     return jsonify(logado_como=current_user), 200
