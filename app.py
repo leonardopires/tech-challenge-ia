@@ -107,22 +107,21 @@ class CSVDownloaderResource(Resource):
 
         if action not in self.sitemap:
             result = APIResponse.not_found()
-
-        if type not in self.sitemap[action]:
+        elif type not in self.sitemap[action]:
             result = APIResponse.not_found()
-
-        try:
-            item = self.sitemap[action][type]
-            resource = item['resource']
-            delimiter = item['delimiter'] or ";"
-            processed_csv = self.process_csv(f"{self.base_url}/{resource}.csv", delimiter)
-            result = APIResponse(processed_csv)
-        except ParserError as parserError:
-            result = APIResponse.wrap_error(parserError, 400)
-        except APIError as apiEx:
-            result = APIResponse.wrap_error(apiEx, apiEx.status_code)
-        except BaseException as ex:
-            result = APIResponse.wrap_error(ex)
+        else:
+            try:
+                item = self.sitemap[action][type]
+                resource = item['resource']
+                delimiter = item['delimiter'] or ";"
+                processed_csv = self.process_csv(f"{self.base_url}/{resource}.csv", delimiter)
+                result = APIResponse(processed_csv)
+            except ParserError as parserError:
+                result = APIResponse.wrap_error(parserError, 400)
+            except APIError as apiEx:
+                result = APIResponse.wrap_error(apiEx, apiEx.status_code)
+            except BaseException as ex:
+                result = APIResponse.wrap_error(ex)
 
         return result.to_dict(), result.status_code
 
