@@ -3,8 +3,10 @@ from typing import MutableMapping
 
 import requests
 from flask import Flask, jsonify, request
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_restx import Resource, Api, fields, Namespace
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, exceptions
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, exceptions, \
+    verify_jwt_in_request
 import pandas as pd
 from io import StringIO
 
@@ -21,17 +23,6 @@ api.add_namespace(ns)
 # Configure a chave secreta JWT
 app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "sua-chave-secreta-aqui")
 app.config.SWAGGER_UI_DOC_EXPANSION = 'full'
-
-
-@app.errorhandler(exceptions.NoAuthorizationError)
-def unauthorized(error):
-    return jsonify({"status_code": 403, "message": "Acesso negado", "error": error.__dict__}), 403
-
-
-@app.errorhandler(500)
-def on_error(error):
-    return jsonify({"status_code": 500, "message": "Erro Interno", "error": error.__dict__}), 500
-
 
 # Inicialize o gerenciador JWT
 jwt = JWTManager(app)
@@ -117,6 +108,7 @@ def get_types(sitemap):
             result.append(f"\t* {second_level_key}")
     return result
 
+
 def get_actions(sitemap):
     result = set()
     for first_level_key in sitemap:
@@ -126,6 +118,7 @@ def get_actions(sitemap):
     result_list.sort()
     return result
 
+
 def get_unique_types(sitemap):
     result = set()
     for first_level_key in sitemap:
@@ -134,7 +127,6 @@ def get_unique_types(sitemap):
     result_list = list(result)
     result_list.sort()
     return result_list
-
 
 
 actions = '\n'.join(get_actions(SITEMAP))
@@ -221,30 +213,45 @@ class Login(Resource):
         password = request.json.get('password', None)
 
         if username != 'zorzi' or password != 'biguxo':
-            return jsonify({"msg": "Usuário ou Senha inválidos"}), 401
+            return {"message": "Usuário ou Senha inválidos"}, 401
 
         access_token = create_access_token(identity=username)
-        return jsonify(access_token=access_token)
+        return {'access_token': access_token}, 200
 
 
 # Endpoint protegido
 @ns.route('/protegido')
+@ns.expect(api.header('Authorization', 'Token JWT', required=True))
 class Protegido(Resource):
-    @jwt_required()
     @ns.response(200, 'Success', fields.Raw)
     @ns.response(403, 'Forbidden')
+    @ns.response(401, 'Unauthorized')
     def get(self):
         """
         Endpoint protegido que retorna a identidade do usuário autenticado.
         """
-        current_user = get_jwt_identity()
-        return jsonify(logado_como=current_user), 200
+        try:
+            verify_jwt_in_request()
+            current_user = get_jwt_identity()
+            return {'logado_como': current_user}, 200
+        except NoAuthorizationError as ex:
+            return APIResponse.wrap_error(ex, 401).to_dict(), 401
 
 
 # Página inicial
 @app.route('/')
 def home():
     return "Fragile Consulting! Wearing the Shirt!"
+
+
+@app.errorhandler(500)
+def on_error(error):
+    return {"status_code": 500, "message": "Erro Interno", "error": str(error)}, 500
+
+
+@app.errorhandler(NoAuthorizationError)
+def unauthorized(error):
+    return {"status_code": 401, "message": "Cabeçalho de autorização ausente", "error": str(error)}, 401
 
 
 if __name__ == '__main__':
