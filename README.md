@@ -102,6 +102,27 @@ A API estará disponível em `http://localhost:5000`.
 - AWS CLI configurado
 - Docker instalado
 
+### Visão Geral
+
+```mermaid
+digraph ECSDeployment {
+    rankdir=LR;
+    
+    Developer [shape=actor, label="Developer"];
+    GitRepo [shape=cylinder, label="Git Repository"];
+    ECR [shape=component, label="Amazon ECR"];
+    ECS [shape=component, label="Amazon ECS"];
+    ALB [shape=component, label="Application Load Balancer"];
+    Users [shape=actor, label="Users"];
+    
+    Developer -> GitRepo [label="push code"];
+    GitRepo -> ECR [label="build & push image"];
+    ECR -> ECS [label="pull image"];
+    ECS -> ALB [label="run containers"];
+    ALB -> Users [label="distribute traffic"];
+}
+```
+
 ### Passos
 
 1. Crie um repositório no Amazon ECR:
