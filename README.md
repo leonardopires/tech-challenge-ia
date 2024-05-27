@@ -35,7 +35,7 @@ Baixa e processa os dados CSV para a ação e o tipo especificados.
 #### Exemplo de Requisição
 
 ```bash
-curl -X GET "http://localhost:5000/api/processamento/viniferas"
+curl -X GET "http://localhost:5050/api/processamento/viniferas"
 ```
 
 ### `POST /login`
@@ -50,7 +50,7 @@ Autentica o usuário e retorna um token JWT.
 #### Exemplo de Requisição
 
 ```bash
-curl -X POST "http://localhost:5000/login" -H "Content-Type: application/json" -d '{"username":"zorzi","password":"biguxo"}'
+curl -X POST "http://localhost:5050/login" -H "Content-Type: application/json" -d '{"username":"zorzi","password":"biguxo"}'
 ```
 
 ### `GET /protegido`
@@ -60,7 +60,7 @@ Endpoint protegido que retorna a identidade do usuário autenticado.
 #### Exemplo de Requisição
 
 ```bash
-curl -X GET "http://localhost:5000/protegido" -H "Authorization: Bearer <seu-token-jwt>"
+curl -X GET "http://localhost:5050/protegido" -H "Authorization: Bearer <seu-token-jwt>"
 ```
 
 ## Como Executar Localmente
@@ -75,8 +75,8 @@ curl -X GET "http://localhost:5000/protegido" -H "Authorization: Bearer <seu-tok
 1. Clone o repositório:
 
     ```bash
-    git clone https://github.com/seu-usuario/sua-api.git
-    cd sua-api
+    git clone https://github.com/leonardopires/tech-challenge-ia.git
+    cd tech-challenge-ia
     ```
 
 2. Instale as dependências:
@@ -94,10 +94,33 @@ curl -X GET "http://localhost:5000/protegido" -H "Authorization: Bearer <seu-tok
 4. Execute a aplicação:
 
     ```bash
-    python app.py
+    python -m flask run
     ```
 
 A API estará disponível em `http://localhost:5000`.
+
+## Executando a API com Docker Compose e Nginx
+
+### Pré-requisitos
+
+- Docker
+- Docker Compose
+
+### Construir e Iniciar os Contêineres
+
+```bash
+docker-compose up --build
+```
+
+A API estará disponível em `http://localhost`.
+
+### Parar os Contêineres
+
+Para parar os contêineres, pressione `Ctrl+C` no terminal onde o `docker-compose up` está sendo executado, ou execute o comando:
+
+```bash
+docker-compose down
+```
 
 ## Deploy no AWS
 

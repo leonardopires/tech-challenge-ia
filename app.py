@@ -1,3 +1,4 @@
+import os
 from typing import MutableMapping
 
 import requests
@@ -16,7 +17,7 @@ ns = Namespace('api', description='API com as operações de extração dos dado
 api.add_namespace(ns)
 
 # Configure a chave secreta JWT
-app.config['JWT_SECRET_KEY'] = 'sua-chave-secreta-aqui'
+app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "sua-chave-secreta-aqui")
 
 
 @app.errorhandler(exceptions.NoAuthorizationError)
@@ -179,4 +180,5 @@ def home():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
