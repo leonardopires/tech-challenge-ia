@@ -109,16 +109,21 @@ def get_types(sitemap):
     result = list()
     for first_level_key in sitemap:
         result.append(f" - {first_level_key}")
-        for second_level_key in sitemap[first_level_key]:
+        items = list(sitemap[first_level_key])
+        items.sort()
+        for second_level_key in items:
             if second_level_key == 'index':
                 second_level_key = f"{second_level_key} (ou valor vazio)"
             result.append(f"\t* {second_level_key}")
     return result
 
 def get_actions(sitemap):
-    result = list()
+    result = set()
     for first_level_key in sitemap:
-        result.append(f" - {first_level_key}")
+        result.add(f" - {first_level_key}")
+
+    result_list = list(result)
+    result_list.sort()
     return result
 
 def get_unique_types(sitemap):
@@ -126,7 +131,9 @@ def get_unique_types(sitemap):
     for first_level_key in sitemap:
         for second_level_key in sitemap[first_level_key]:
             result.add(second_level_key)
-    return list(result)
+    result_list = list(result)
+    result_list.sort()
+    return result_list
 
 
 
