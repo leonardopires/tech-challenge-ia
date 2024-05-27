@@ -17,13 +17,13 @@ authorizations = {
         'type': 'apiKey',
         'in': 'header',
         'name': 'Authorization',
-        'description': "Digite na caixa *'Value'*: **'Bearer &lt;JWT&gt;'**, onde JWT é o token que você recebe chamando o método /api/login"
+        'description': "Digite na caixa *'Value'*: **'Bearer &lt;JWT&gt;'**, onde JWT é o token que você recebe chamando o método /api/login",
     }
 }
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API de dados de produção vitivinícola.',
-          description='Baixa e processa os dados direto do site da Embrapa.', security="jwt", authorizations=authorizations, lang="pt-BR")
+          description='Baixa e processa os dados direto do site da Embrapa.\nPara autenticar, chame primeiro o método /api/login, colete o JWT e use no cabeçalho "Authorization", precedido pelo prefixo "Bearer ".', security="jwt", authorizations=authorizations, lang="pt-BR", )
 
 ns = Namespace('api', description='API com as operações de extração dos dados do site da Embrapa.')
 
