@@ -105,22 +105,19 @@ A API estará disponível em `http://localhost:5000`.
 ### Visão Geral
 
 ```mermaid
-digraph ECSDeployment {
-    rankdir=LR;
+graph TD
+    Developer((Developer))
+    GitRepo[(Git Repository)]
+    ECR((Amazon ECR))
+    ECS((Amazon ECS))
+    ALB((Application Load Balancer))
+    Users((Users))
     
-    Developer [shape=actor, label="Developer"];
-    GitRepo [shape=cylinder, label="Git Repository"];
-    ECR [shape=component, label="Amazon ECR"];
-    ECS [shape=component, label="Amazon ECS"];
-    ALB [shape=component, label="Application Load Balancer"];
-    Users [shape=actor, label="Users"];
-    
-    Developer -> GitRepo [label="push code"];
-    GitRepo -> ECR [label="build & push image"];
-    ECR -> ECS [label="pull image"];
-    ECS -> ALB [label="run containers"];
-    ALB -> Users [label="distribute traffic"];
-}
+    Developer -->|push code| GitRepo
+    GitRepo -->|build & push image| ECR
+    ECR -->|pull image| ECS
+    ECS -->|run containers| ALB
+    ALB -->|distribute traffic| Users
 ```
 
 ### Passos
