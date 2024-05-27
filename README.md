@@ -2,6 +2,11 @@
 
 Esta API permite baixar e processar dados de produção vitivinícola diretamente do site da Embrapa. A API oferece endpoints para acessar dados de processamento, comercialização, importação e exportação de diversos tipos de uvas e produtos relacionados.
 
+## Autores
+- @Felipe-DePaula - Felipe de Paula Gomes
+- @JorgeWald - Jorge Guilherme Dalcorso Wald
+- @leonardopires - Leonardo Petersen Thomé Pires
+
 ## Funcionalidades
 
 - Download e processamento de arquivos CSV da Embrapa.
