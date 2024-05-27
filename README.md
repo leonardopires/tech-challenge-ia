@@ -23,19 +23,19 @@ Esta API permite baixar e processar dados de produção vitivinícola diretament
 
 ## Endpoints
 
-### `GET /api/<action>/<type>`
+### `GET /api/embrapa/<action>/<type>`
 
 Baixa e processa os dados CSV para a ação e o tipo especificados.
 
 #### Parâmetros
 
-- `action`: Tipo de ação (processamento, comercializacao, importacao, exportacao).
+- `action`: Tipo de dado a ser retornado (processamento, comercializacao, importacao, exportacao).
 - `type`: Tipo de produto analisado (viniferas, americanasehibridas, etc.).
 
 #### Exemplo de Requisição
 
 ```bash
-curl -X GET "http://<url>/api/processamento/viniferas"
+curl -X GET "http://<url>/api/embrapa/processamento/viniferas"
 ```
 
 ### `POST /login`
@@ -187,5 +187,3 @@ graph TD
 8. Configure um Load Balancer para expor a API na internet.
 
 Agora sua API estará disponível publicamente através do serviço ECS no AWS.
-
-

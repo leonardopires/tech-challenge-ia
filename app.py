@@ -12,12 +12,15 @@ from pandas.errors import ParserError
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API de dados de produção vitivinícola.',
-          description='Baixa e processa os dados direto do site da Embrapa.')
+          description='Baixa e processa os dados direto do site da Embrapa.', )
+
 ns = Namespace('api', description='API com as operações de extração dos dados do site da Embrapa.')
+
 api.add_namespace(ns)
 
 # Configure a chave secreta JWT
 app.config['JWT_SECRET_KEY'] = os.environ.get("JWT_SECRET_KEY", "sua-chave-secreta-aqui")
+app.config.SWAGGER_UI_DOC_EXPANSION = 'full'
 
 
 @app.errorhandler(exceptions.NoAuthorizationError)
@@ -73,10 +76,9 @@ SITEMAP: dict = {
         "uvasdemesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
         "mesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
         "semclassificacao": {"resource": "ProcessaSemclass", "delimiter": "\t"},
-        "index": {"resource": "ProcessaSemclass", "delimiter": "\t"},
     },
     "comercializacao": {
-        "index": {"resource": "Comercio", "delimiter": ";"},
+        "todos": {"resource": "Comercio", "delimiter": ";"},
     },
     "importacao": {
         "vinhosdemesa": {"resource": "ImpVinhos", "delimiter": ";"},
@@ -104,17 +106,35 @@ SITEMAP: dict = {
 
 
 def get_types(sitemap):
-    second_level_keys = set()
+    result = list()
+    for first_level_key in sitemap:
+        result.append(f" - {first_level_key}")
+        for second_level_key in sitemap[first_level_key]:
+            if second_level_key == 'index':
+                second_level_key = f"{second_level_key} (ou valor vazio)"
+            result.append(f"\t* {second_level_key}")
+    return result
+
+def get_actions(sitemap):
+    result = list()
+    for first_level_key in sitemap:
+        result.append(f" - {first_level_key}")
+    return result
+
+def get_unique_types(sitemap):
+    result = set()
     for first_level_key in sitemap:
         for second_level_key in sitemap[first_level_key]:
-            second_level_keys.add(second_level_key)
-    return list(second_level_keys)
+            result.add(second_level_key)
+    return list(result)
 
 
-actions = ', '.join(SITEMAP.keys())
-types = ', '.join(get_types(SITEMAP))
+
+actions = '\n'.join(get_actions(SITEMAP))
+types = '\n'.join(get_types(SITEMAP))
 
 
+@ns.route('/embrapa/<string:action>/<string:type>')
 class CSVDownloaderResource(Resource):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -134,8 +154,9 @@ class CSVDownloaderResource(Resource):
         return df.to_dict(orient='records')
 
     @ns.doc(params={
-        'action': {'description': f"Tipo de ação ({actions})", 'type': 'string', 'required': True},
-        'type': {'description': f'O tipo de produto analisado ({types})', 'type': 'string', 'required': False,
+        'action': {'description': f"Tipo de dado a ser retornado:", 'enum': list(SITEMAP.keys()), 'required': True},
+        'type': {'description': f'O tipo de produto analisado (varia de acordo com o tipo de ação): \n{types}',
+                 'enum': get_unique_types(SITEMAP), 'required': True,
                  'default': 'index'}
     })
     @ns.response(200, 'Success', [fields.Raw])
@@ -167,12 +188,6 @@ class CSVDownloaderResource(Resource):
 
         return result.to_dict(), result.status_code
 
-
-# Adicionando recursos à API
-ns.add_resource(
-    CSVDownloaderResource,
-    '/<string:action>/<string:type>',
-    '/<string:action>')
 
 # Definindo modelos de dados para a documentação do Swagger
 login_model = ns.model('Login', {
