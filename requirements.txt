@@ -2,6 +2,6 @@ requests~=2.32.1
 flask~=3.0.3
 flask-restful~=0.3.10
 flask-jwt-extended~=4.6.0
-pandas~=2.2.2
+pandas
 flask-restx
 flask-swagger-ui

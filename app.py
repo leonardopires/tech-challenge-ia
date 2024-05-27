@@ -12,9 +12,18 @@ from io import StringIO
 
 from pandas.errors import ParserError
 
+authorizations = {
+    'jwt': {
+        'type': 'apiKey',
+        'in': 'header',
+        'name': 'Authorization',
+        'description': "Digite na caixa *'Value'*: **'Bearer &lt;JWT&gt;'**, onde JWT é o token que você recebe chamando o método /api/login"
+    }
+}
+
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API de dados de produção vitivinícola.',
-          description='Baixa e processa os dados direto do site da Embrapa.', )
+          description='Baixa e processa os dados direto do site da Embrapa.', security="jwt", authorizations=authorizations, lang="pt-BR")
 
 ns = Namespace('api', description='API com as operações de extração dos dados do site da Embrapa.')
 
@@ -26,7 +35,6 @@ app.config.SWAGGER_UI_DOC_EXPANSION = 'full'
 
 # Inicialize o gerenciador JWT
 jwt = JWTManager(app)
-
 
 class APIError(Exception):
     def __init__(self, message: str, status_code: int = 500):
@@ -155,12 +163,13 @@ class CSVDownloaderResource(Resource):
     @ns.doc(params={
         'action': {'description': f"Tipo de dado a ser retornado:", 'enum': list(SITEMAP.keys()), 'required': True},
         'type': {'description': f'O tipo de produto analisado (varia de acordo com o tipo de ação): \n{types}',
-                 'enum': get_unique_types(SITEMAP), 'required': True,
-                 'default': 'index'}
+                 'enum': get_unique_types(SITEMAP), 'required': True}
     })
     @ns.response(200, 'Success', [fields.Raw])
     @ns.response(404, 'Not Found')
     @ns.response(500, 'Internal Server Error')
+    @ns.response(403, 'Forbidden')
+    @ns.response(401, 'Unauthorized')
     def get(self, action: str, type: str = "index") -> tuple[dict, int]:
         """
         Baixa e processa os dados CSV para a ação e o tipo especificados.
@@ -173,6 +182,7 @@ class CSVDownloaderResource(Resource):
             result = APIResponse.not_found()
         else:
             try:
+                verify_jwt_in_request()
                 item = self.sitemap[action][type]
                 resource = item['resource']
                 delimiter = item['delimiter'] or ";"
@@ -180,6 +190,8 @@ class CSVDownloaderResource(Resource):
                 result = APIResponse(processed_csv)
             except ParserError as parserError:
                 result = APIResponse.wrap_error(parserError, 400)
+            except NoAuthorizationError as authEx:
+                result = APIResponse.wrap_error(authEx, 401)
             except APIError as apiEx:
                 result = APIResponse.wrap_error(apiEx, apiEx.status_code)
             except BaseException as ex:
@@ -221,7 +233,7 @@ class Login(Resource):
 
 # Endpoint protegido
 @ns.route('/protegido')
-@ns.expect(api.header('Authorization', 'Token JWT', required=True))
+@ns.expect(ns.header('Authorization', 'Token JWT', required=True))
 class Protegido(Resource):
     @ns.response(200, 'Success', fields.Raw)
     @ns.response(403, 'Forbidden')
