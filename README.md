@@ -35,7 +35,7 @@ Baixa e processa os dados CSV para a ação e o tipo especificados.
 #### Exemplo de Requisição
 
 ```bash
-curl -X GET "http://localhost:5050/api/processamento/viniferas"
+curl -X GET "http://<url>/api/processamento/viniferas"
 ```
 
 ### `POST /login`
@@ -50,7 +50,7 @@ Autentica o usuário e retorna um token JWT.
 #### Exemplo de Requisição
 
 ```bash
-curl -X POST "http://localhost:5050/login" -H "Content-Type: application/json" -d '{"username":"zorzi","password":"biguxo"}'
+curl -X POST "http://<url>/login" -H "Content-Type: application/json" -d '{"username":"zorzi","password":"biguxo"}'
 ```
 
 ### `GET /protegido`
@@ -60,7 +60,7 @@ Endpoint protegido que retorna a identidade do usuário autenticado.
 #### Exemplo de Requisição
 
 ```bash
-curl -X GET "http://localhost:5050/protegido" -H "Authorization: Bearer <seu-token-jwt>"
+curl -X GET "http://<url>/protegido" -H "Authorization: Bearer <seu-token-jwt>"
 ```
 
 ## Como Executar Localmente

@@ -2,7 +2,7 @@ import os
 from typing import MutableMapping
 
 import requests
-from flask import Flask, jsonify, request, Response
+from flask import Flask, jsonify, request
 from flask_restx import Resource, Api, fields, Namespace
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, exceptions
 import pandas as pd
@@ -61,50 +61,64 @@ class APIResponse:
 
     @classmethod
     def wrap_error(cls, error: BaseException, status_code: int = 400):
-        return cls(error.__dict__, status_code)
+        return cls(str(error), status_code)
+
+
+SITEMAP: dict = {
+    "processamento": {
+        "viniferas": {"resource": "ProcessaViniferas", "delimiter": "\t"},
+        "americanasehibridas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
+        "americanas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
+        "hibridas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
+        "uvasdemesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
+        "mesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
+        "semclassificacao": {"resource": "ProcessaSemclass", "delimiter": "\t"},
+        "index": {"resource": "ProcessaSemclass", "delimiter": "\t"},
+    },
+    "comercializacao": {
+        "index": {"resource": "Comercio", "delimiter": ";"},
+    },
+    "importacao": {
+        "vinhosdemesa": {"resource": "ImpVinhos", "delimiter": ";"},
+        "vinhos": {"resource": "ImpVinhos", "delimiter": ";"},
+        "espumantes": {"resource": "ImpEspumantes", "delimiter": ";"},
+        "uvasfrescas": {"resource": "ImpFrescas", "delimiter": ";"},
+        "uvas": {"resource": "ImpFrescas", "delimiter": ";"},
+        "frescas": {"resource": "ImpFrescas", "delimiter": ";"},
+        "uvaspassas": {"resource": "ImpPassas", "delimiter": ";"},
+        "passas": {"resource": "ImpPassas", "delimiter": ";"},
+        "sucodeuva": {"resource": "ImpSuco", "delimiter": ";"},
+        "suco": {"resource": "ImpSuco", "delimiter": ";"},
+    },
+    "exportacao": {
+        "vinhosdemesa": {"resource": "ExpVinho", "delimiter": ";"},
+        "vinhos": {"resource": "ExpVinho", "delimiter": ";"},
+        "espumantes": {"resource": "ExpEspumantes", "delimiter": ";"},
+        "uvasfrescas": {"resource": "ExpUva", "delimiter": ";"},
+        "uvas": {"resource": "ExpUva", "delimiter": ";"},
+        "frescas": {"resource": "ExpUva", "delimiter": ";"},
+        "sucodeuva": {"resource": "ExpSuco", "delimiter": ";"},
+        "suco": {"resource": "ExpSuco", "delimiter": ";"},
+    }
+}
+
+
+def get_types(sitemap):
+    second_level_keys = set()
+    for first_level_key in sitemap:
+        for second_level_key in sitemap[first_level_key]:
+            second_level_keys.add(second_level_key)
+    return list(second_level_keys)
+
+
+actions = ', '.join(SITEMAP.keys())
+types = ', '.join(get_types(SITEMAP))
 
 
 class CSVDownloaderResource(Resource):
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
-        self.sitemap: dict = {
-            "processamento": {
-                "viniferas": {"resource": "ProcessaViniferas", "delimiter": "\t"},
-                "americanasehibridas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
-                "americanas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
-                "hibridas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
-                "uvasdemesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
-                "mesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
-                "semclassificacao": {"resource": "ProcessaSemclass", "delimiter": "\t"},
-                "index": {"resource": "ProcessaSemclass", "delimiter": "\t"},
-            },
-            "comercializacao": {
-                "index": {"resource": "Comercio", "delimiter": ";"},
-            },
-            "importacao": {
-                "vinhosdemesa": {"resource": "ImpVinhos", "delimiter": ";"},
-                "vinhos": {"resource": "ImpVinhos", "delimiter": ";"},
-                "espumantes": {"resource": "ImpEspumantes", "delimiter": ";"},
-                "uvasfrescas": {"resource": "ImpFrescas", "delimiter": ";"},
-                "uvas": {"resource": "ImpFrescas", "delimiter": ";"},
-                "frescas": {"resource": "ImpFrescas", "delimiter": ";"},
-                "uvaspassas": {"resource": "ImpPassas", "delimiter": ";"},
-                "passas": {"resource": "ImpPassas", "delimiter": ";"},
-                "sucodeuva": {"resource": "ImpSuco", "delimiter": ";"},
-                "suco": {"resource": "ImpSuco", "delimiter": ";"},
-            },
-            "exportacao": {
-                "vinhosdemesa": {"resource": "ExpVinho", "delimiter": ";"},
-                "vinhos": {"resource": "ExpVinho", "delimiter": ";"},
-                "espumantes": {"resource": "ExpEspumantes", "delimiter": ";"},
-                "uvasfrescas": {"resource": "ExpUva", "delimiter": ";"},
-                "uvas": {"resource": "ExpUva", "delimiter": ";"},
-                "frescas": {"resource": "ExpUva", "delimiter": ";"},
-                "sucodeuva": {"resource": "ExpSuco", "delimiter": ";"},
-                "suco": {"resource": "ExpSuco", "delimiter": ";"},
-            }
-        }
+        self.sitemap: dict = SITEMAP
 
         self.base_url = "http://vitibrasil.cnpuv.embrapa.br/download"
 
@@ -119,9 +133,18 @@ class CSVDownloaderResource(Resource):
         df = pd.read_csv(csv_data, delimiter=delimiter)
         return df.to_dict(orient='records')
 
-    @ns.doc(params={'action': 'Tipo de ação (processamento, comercializacao, importacao, exportacao)',
-                    'type': 'O tipo de produto analisado (viniferas, americanasehibridas, etc.)'})
+    @ns.doc(params={
+        'action': {'description': f"Tipo de ação ({actions})", 'type': 'string', 'required': True},
+        'type': {'description': f'O tipo de produto analisado ({types})', 'type': 'string', 'required': False,
+                 'default': 'index'}
+    })
+    @ns.response(200, 'Success', [fields.Raw])
+    @ns.response(404, 'Not Found')
+    @ns.response(500, 'Internal Server Error')
     def get(self, action: str, type: str = "index") -> tuple[dict, int]:
+        """
+        Baixa e processa os dados CSV para a ação e o tipo especificados.
+        """
         result = APIResponse.empty()
 
         if action not in self.sitemap:
@@ -151,26 +174,49 @@ ns.add_resource(
     '/<string:action>/<string:type>',
     '/<string:action>')
 
+# Definindo modelos de dados para a documentação do Swagger
+login_model = ns.model('Login', {
+    'username': fields.String(required=True, description='Nome de usuário'),
+    'password': fields.String(required=True, description='Senha do usuário')
+})
+
+token_model = ns.model('Token', {
+    'access_token': fields.String(description='Token JWT de acesso')
+})
+
 
 # Endpoint para login
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.json.get('username', None)
-    password = request.json.get('password', None)
+@ns.route('/login')
+class Login(Resource):
+    @ns.expect(login_model)
+    @ns.response(200, 'Success', token_model)
+    @ns.response(401, 'Unauthorized')
+    def post(self):
+        """
+        Autentica o usuário e retorna um token JWT.
+        """
+        username = request.json.get('username', None)
+        password = request.json.get('password', None)
 
-    if username != 'zorzi' or password != 'biguxo':
-        return jsonify({"msg": "Usuário ou Senha inválidos"}), 401
+        if username != 'zorzi' or password != 'biguxo':
+            return jsonify({"msg": "Usuário ou Senha inválidos"}), 401
 
-    access_token = create_access_token(identity=username)
-    return jsonify(access_token=access_token)
+        access_token = create_access_token(identity=username)
+        return jsonify(access_token=access_token)
 
 
 # Endpoint protegido
-@app.route('/protegido', methods=['GET'])
-@jwt_required()
-def protegido():
-    current_user = get_jwt_identity()
-    return jsonify(logado_como=current_user), 200
+@ns.route('/protegido')
+class Protegido(Resource):
+    @jwt_required()
+    @ns.response(200, 'Success', fields.Raw)
+    @ns.response(403, 'Forbidden')
+    def get(self):
+        """
+        Endpoint protegido que retorna a identidade do usuário autenticado.
+        """
+        current_user = get_jwt_identity()
+        return jsonify(logado_como=current_user), 200
 
 
 # Página inicial
@@ -181,4 +227,3 @@ def home():
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
-
