@@ -23,6 +23,15 @@ Esta API permite baixar e processar dados de produção vitivinícola diretament
 
 ## Endpoints
 
+### `GET /`
+Abre a pagina com a documentação do Swagger.
+
+Com Docker: http://localhost
+
+Rodando diretamente: http://localhost:5000
+
+(Veja o restante deste documento para ver como rodar de cada forma)
+
 ### `GET /api/embrapa/<action>/<type>`
 
 Baixa e processa os dados CSV para a ação e o tipo especificados.
