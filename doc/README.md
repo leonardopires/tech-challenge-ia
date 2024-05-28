@@ -10,7 +10,7 @@
     ```json
     {
       "username": "zorzi",
-      "pvassword": "biguxo"
+      "password": "biguxo"
     }
     ```
 
@@ -27,9 +27,9 @@
 
 ### 2. Usando o token de autenticação:
 
-- Volte ao topo da página e clique em `Authenticate`
+- Volte ao topo da página e clique em `Authorize`
 - No campo que vai aparecer, digite: `Bearer SEU_TOKEN`
-- Clique no botão `Authenticate`
+- Clique no botão `Authorize`
 - Clique no botão `Close`
 
 ### 3. Testando seu token
