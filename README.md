@@ -152,7 +152,7 @@ graph TD
     Heroku((Heroku))
     Usuarios((Usuários))
     
-    Dev -->|p| Git
+    Dev -->|merge na main| Git
     Git -->|webhook| Heroku
     Heroku -->|baixa código| Git
     Heroku -->|faz o build e disponibiliza| Usuarios
