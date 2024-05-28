@@ -2,28 +2,32 @@ import os
 from typing import MutableMapping
 
 import requests
-from flask import Flask, jsonify, request
+from flask import Flask, request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_restx import Resource, Api, fields, Namespace
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, exceptions, \
-    verify_jwt_in_request
+from flask_jwt_extended import JWTManager, create_access_token, get_jwt_identity, verify_jwt_in_request
 import pandas as pd
 from io import StringIO
 
 from pandas.errors import ParserError
+
+from config.sitemap import SITEMAP
+from framework.web.APIError import APIError
+from framework.web.APIResponse import APIResponse
 
 authorizations = {
     'jwt': {
         'type': 'apiKey',
         'in': 'header',
         'name': 'Authorization',
-        'description': "Digite na caixa *'Value'*: **'Bearer &lt;JWT&gt;'**, onde JWT é o token que você recebe chamando o método /api/login",
+        'description': "Digite na caixa *'Value'*: **'Bearer &lt;JWT&gt;'**, onde JWT é o token que você recebe chamando o método /api/auth",
     }
 }
 
 app = Flask(__name__)
 api = Api(app, version='1.0', title='API de dados de produção vitivinícola.',
-          description='Baixa e processa os dados direto do site da Embrapa.\nPara autenticar, chame primeiro o método /api/login, colete o JWT e use no cabeçalho "Authorization", precedido pelo prefixo "Bearer ".', security="jwt", authorizations=authorizations, lang="pt-BR", )
+          description='Baixa e processa os dados direto do site da Embrapa.\nPara autenticar, chame primeiro o método /api/auth, colete o JWT e use no cabeçalho "Authorization", precedido pelo prefixo "Bearer ".',
+          security="jwt", authorizations=authorizations, lang="pt-BR", )
 
 ns = Namespace('api', description='API com as operações de extração dos dados do site da Embrapa.')
 
@@ -36,73 +40,52 @@ app.config.SWAGGER_UI_DOC_EXPANSION = 'full'
 # Inicialize o gerenciador JWT
 jwt = JWTManager(app)
 
-class APIError(Exception):
-    def __init__(self, message: str, status_code: int = 500):
-        self.message = message
-        self.status_code = status_code
+# Definindo modelos de dados para a documentação do Swagger
+login_model = ns.model('Login', {
+    'username': fields.String(required=True, description='Nome de usuário'),
+    'password': fields.String(required=True, description='Senha do usuário')
+})
 
-    def to_dict(self):
-        return {"message": self.message, "status_code": self.status_code}
-
-
-class APIResponse:
-    def __init__(self, data: object, status_code: int = 200):
-        self.data = data
-        self.status_code = status_code
-
-    def to_dict(self):
-        return {"status_code": self.status_code, "data": self.data}
-
-    @classmethod
-    def empty(cls):
-        return cls("OK", 200)
-
-    @classmethod
-    def not_found(cls):
-        return cls("Não encontrado", 404)
-
-    @classmethod
-    def wrap_error(cls, error: BaseException, status_code: int = 400):
-        return cls(str(error), status_code)
+token_model = ns.model('Token', {
+    'access_token': fields.String(description='Token JWT de acesso')
+})
 
 
-SITEMAP: dict = {
-    "processamento": {
-        "viniferas": {"resource": "ProcessaViniferas", "delimiter": "\t"},
-        "americanasehibridas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
-        "americanas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
-        "hibridas": {"resource": "ProcessaAmericanas", "delimiter": "\t"},
-        "uvasdemesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
-        "mesa": {"resource": "ProcessaMesa", "delimiter": "\t"},
-        "semclassificacao": {"resource": "ProcessaSemclass", "delimiter": "\t"},
-    },
-    "comercializacao": {
-        "todos": {"resource": "Comercio", "delimiter": ";"},
-    },
-    "importacao": {
-        "vinhosdemesa": {"resource": "ImpVinhos", "delimiter": ";"},
-        "vinhos": {"resource": "ImpVinhos", "delimiter": ";"},
-        "espumantes": {"resource": "ImpEspumantes", "delimiter": ";"},
-        "uvasfrescas": {"resource": "ImpFrescas", "delimiter": ";"},
-        "uvas": {"resource": "ImpFrescas", "delimiter": ";"},
-        "frescas": {"resource": "ImpFrescas", "delimiter": ";"},
-        "uvaspassas": {"resource": "ImpPassas", "delimiter": ";"},
-        "passas": {"resource": "ImpPassas", "delimiter": ";"},
-        "sucodeuva": {"resource": "ImpSuco", "delimiter": ";"},
-        "suco": {"resource": "ImpSuco", "delimiter": ";"},
-    },
-    "exportacao": {
-        "vinhosdemesa": {"resource": "ExpVinho", "delimiter": ";"},
-        "vinhos": {"resource": "ExpVinho", "delimiter": ";"},
-        "espumantes": {"resource": "ExpEspumantes", "delimiter": ";"},
-        "uvasfrescas": {"resource": "ExpUva", "delimiter": ";"},
-        "uvas": {"resource": "ExpUva", "delimiter": ";"},
-        "frescas": {"resource": "ExpUva", "delimiter": ";"},
-        "sucodeuva": {"resource": "ExpSuco", "delimiter": ";"},
-        "suco": {"resource": "ExpSuco", "delimiter": ";"},
-    }
-}
+# Endpoint para login
+@ns.route('/auth')
+class AuthResource(Resource):
+    @ns.expect(login_model)
+    @ns.response(200, 'Success', token_model)
+    @ns.response(401, 'Unauthorized')
+    def post(self):
+        """
+        Autentica o usuário e retorna um token JWT.
+        """
+        username = request.json.get('username', None)
+        password = request.json.get('password', None)
 
+        if username != 'zorzi' or password != 'biguxo':
+            return {"message": "Usuário ou Senha inválidos"}, 401
+
+        access_token = create_access_token(identity=username)
+        return {'access_token': access_token}, 200
+
+@ns.route('/auth/profile')
+class ProfileResource(Resource):
+    @ns.response(200, 'Success', fields.Raw)
+    @ns.response(403, 'Forbidden')
+    @ns.response(401, 'Unauthorized')
+    @ns.expect(ns.header('Authorization', 'Token JWT', required=True))
+    def get(self):
+        """
+        Endpoint protegido que retorna a identidade do usuário autenticado.
+        """
+        try:
+            verify_jwt_in_request()
+            current_user = get_jwt_identity()
+            return {'user': current_user}, 200
+        except NoAuthorizationError as ex:
+            return APIResponse.wrap_error(ex, 401).to_dict(), 401
 
 def get_types(sitemap):
     result = list()
@@ -198,62 +181,6 @@ class CSVDownloaderResource(Resource):
                 result = APIResponse.wrap_error(ex)
 
         return result.to_dict(), result.status_code
-
-
-# Definindo modelos de dados para a documentação do Swagger
-login_model = ns.model('Login', {
-    'username': fields.String(required=True, description='Nome de usuário'),
-    'password': fields.String(required=True, description='Senha do usuário')
-})
-
-token_model = ns.model('Token', {
-    'access_token': fields.String(description='Token JWT de acesso')
-})
-
-
-# Endpoint para login
-@ns.route('/login')
-class Login(Resource):
-    @ns.expect(login_model)
-    @ns.response(200, 'Success', token_model)
-    @ns.response(401, 'Unauthorized')
-    def post(self):
-        """
-        Autentica o usuário e retorna um token JWT.
-        """
-        username = request.json.get('username', None)
-        password = request.json.get('password', None)
-
-        if username != 'zorzi' or password != 'biguxo':
-            return {"message": "Usuário ou Senha inválidos"}, 401
-
-        access_token = create_access_token(identity=username)
-        return {'access_token': access_token}, 200
-
-
-# Endpoint protegido
-@ns.route('/protegido')
-@ns.expect(ns.header('Authorization', 'Token JWT', required=True))
-class Protegido(Resource):
-    @ns.response(200, 'Success', fields.Raw)
-    @ns.response(403, 'Forbidden')
-    @ns.response(401, 'Unauthorized')
-    def get(self):
-        """
-        Endpoint protegido que retorna a identidade do usuário autenticado.
-        """
-        try:
-            verify_jwt_in_request()
-            current_user = get_jwt_identity()
-            return {'logado_como': current_user}, 200
-        except NoAuthorizationError as ex:
-            return APIResponse.wrap_error(ex, 401).to_dict(), 401
-
-
-# Página inicial
-@app.route('/')
-def home():
-    return "Fragile Consulting! Wearing the Shirt!"
 
 
 @app.errorhandler(500)

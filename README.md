@@ -32,6 +32,32 @@ Rodando diretamente: http://localhost:5000
 
 (Veja o restante deste documento para ver como rodar de cada forma)
 
+### `POST /auth`
+
+Autentica o usuário e retorna um token JWT.
+
+#### Parâmetros
+
+- `username`: Nome de usuário.
+- `password`: Senha do usuário.
+
+#### Exemplo de Requisição
+
+```bash
+curl -X POST "http://<url>/auth" -H "Content-Type: application/json" -d '{"username":"zorzi","password":"biguxo"}'
+```
+
+### `GET /auth/profile`
+
+Endpoint protegido que retorna a identidade do usuário autenticado.
+
+#### Exemplo de Requisição
+
+```bash
+curl -X GET "http://<url>/auth/profile" -H "Authorization: Bearer <seu-token-jwt>"
+```
+
+
 ### `GET /api/embrapa/<action>/<type>`
 
 Baixa e processa os dados CSV para a ação e o tipo especificados.
@@ -44,32 +70,7 @@ Baixa e processa os dados CSV para a ação e o tipo especificados.
 #### Exemplo de Requisição
 
 ```bash
-curl -X GET "http://<url>/api/embrapa/processamento/viniferas"
-```
-
-### `POST /login`
-
-Autentica o usuário e retorna um token JWT.
-
-#### Parâmetros
-
-- `username`: Nome de usuário.
-- `password`: Senha do usuário.
-
-#### Exemplo de Requisição
-
-```bash
-curl -X POST "http://<url>/login" -H "Content-Type: application/json" -d '{"username":"zorzi","password":"biguxo"}'
-```
-
-### `GET /protegido`
-
-Endpoint protegido que retorna a identidade do usuário autenticado.
-
-#### Exemplo de Requisição
-
-```bash
-curl -X GET "http://<url>/protegido" -H "Authorization: Bearer <seu-token-jwt>"
+curl -X GET "http://<url>/api/embrapa/processamento/viniferas" -H "Authorization: Bearer <seu-token-jwt>
 ```
 
 ## Como Executar Localmente
