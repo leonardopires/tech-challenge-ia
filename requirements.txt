@@ -5,3 +5,4 @@ flask-jwt-extended~=4.6.0
 pandas
 flask-restx
 flask-swagger-ui
+gunicorn
