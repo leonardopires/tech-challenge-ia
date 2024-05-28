@@ -29,6 +29,9 @@
 
 - Volte ao topo da página e clique em `Authorize`
 - No campo que vai aparecer, digite: `Bearer SEU_TOKEN`
+  - **ATENÇÃO! É NECESSÁRIO ADICIONAR O PREFIXO `Bearer ` ANTES DO TOKEN**
+  - **ATENÇÃO! É NECESSÁRIO ADICIONAR O PREFIXO `Bearer ` ANTES DO TOKEN**
+  - **ATENÇÃO! É NECESSÁRIO ADICIONAR O PREFIXO `Bearer ` ANTES DO TOKEN**
 - Clique no botão `Authorize`
 - Clique no botão `Close`
 
