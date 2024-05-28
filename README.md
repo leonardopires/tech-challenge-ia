@@ -136,68 +136,32 @@ Para parar os contêineres, pressione `Ctrl+C` no terminal onde o `docker-compos
 docker-compose down
 ```
 
-## Deploy no AWS
+## Deploy no Heroku
 
 ### Pré-requisitos
 
-- Conta AWS
-- AWS CLI configurado
-- Docker instalado
+- Conta Heroku
+- Acesso ao nosso repositório no GitHub
 
 ### Visão Geral
 
 ```mermaid
 graph TD
-    Developer((Developer))
-    GitRepo[(Git Repository)]
-    ECR((Amazon ECR))
-    ECS((Amazon ECS))
-    ALB((Application Load Balancer))
-    Users((Users))
+    Dev((Desenvolvedor))
+    Git[(Git)]
+    Heroku((Heroku))
+    Usuarios((Usuários))
     
-    Developer -->|push code| GitRepo
-    GitRepo -->|build & push image| ECR
-    ECR -->|pull image| ECS
-    ECS -->|run containers| ALB
-    ALB -->|distribute traffic| Users
+    Dev -->|p| Git
+    Git -->|webhook| Heroku
+    Heroku -->|baixa código| Git
+    Heroku -->|faz o build e disponibiliza| Usuarios
 ```
 
 ### Passos
 
-1. Crie um repositório no Amazon ECR:
-
-    ```bash
-    aws ecr create-repository --repository-name sua-api
-    ```
-
-2. Autentique o Docker no Amazon ECR:
-
-    ```bash
-    aws ecr get-login-password --region sua-regiao | docker login --username AWS --password-stdin <seu-id>.dkr.ecr.sua-regiao.amazonaws.com
-    ```
-
-3. Construa a imagem Docker:
-
-    ```bash
-    docker build -t sua-api .
-    ```
-
-4. Marque a imagem:
-
-    ```bash
-    docker tag sua-api:latest <seu-id>.dkr.ecr.sua-regiao.amazonaws.com/sua-api:latest
-    ```
-
-5. Faça o push da imagem para o Amazon ECR:
-
-    ```bash
-    docker push <seu-id>.dkr.ecr.sua-regiao.amazonaws.com/sua-api:latest
-    ```
-
-6. Crie um cluster ECS e uma tarefa ECS que utilize a imagem Docker.
-
-7. Crie um serviço ECS que utilize a tarefa criada.
-
-8. Configure um Load Balancer para expor a API na internet.
-
-Agora sua API estará disponível publicamente através do serviço ECS no AWS.
+1. Faça suas alterações em um branch
+2. Crie um pull request
+3. Faça o merge do seu pull request com a `main`
+4. Aguarde alguns minutos
+5. A API estará no ar em https://api-vitivinicola-e7feea405d27.herokuapp.com/ 
