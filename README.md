@@ -2,6 +2,10 @@
 
 Esta API permite baixar e processar dados de produção vitivinícola diretamente do site da Embrapa. A API oferece endpoints para acessar dados de processamento, comercialização, importação e exportação de diversos tipos de uvas e produtos relacionados.
 
+Você pode encontrar um preview do app rodando em: https://api-vitivinicola-e7feea405d27.herokuapp.com/
+
+Esta localização deve mudar quando tivermos acesso ao console do AWS.
+
 ## Autores
 - [Felipe de Paula Gomes](https://github.com/Felipe-DePaula)
 - [Jorge Guilherme Dalcorso Wald](https://github.com/JorgeWald)
