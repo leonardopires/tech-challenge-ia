@@ -1,3 +1,9 @@
+## Este trabalho é parte da entrega do Challenge FIAP - Maio 2024 - PosTech Machine Learning 1MLET 
+## Alunos
+***Leonardo Pires - `RM355401`***
+***Felipe de Paula - `RM355402`***
+***Jorge Wald - `RM355849`***
+
 ## Como funciona:
 
 ### 1. Obtendo um token JWT:
